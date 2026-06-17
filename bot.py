@@ -7,7 +7,7 @@ API_ID = 10079905          # Öz API ID-nizi yazın
 API_HASH = "e4a5fa251e2e055f26e5c2add8401530"  # Öz API Hash-inizi yazın
 BOT_TOKEN = "8805123493:AAHETZ2RphaMdPrKwwWKPnAK8S2YZx9ke1Q" # Öz Bot Tokeninizi yazın
 ADMIN_ID = 8300963721      # Bot sahibinin (Sizin) Telegram ID-niz
-IMAGE_URL = "start.jpg"  # Start mesajlarında görünəcək şəkil linki
+IMAGE_URL = "IMG_20260617_175753_868.jpg"  # Start mesajlarında görünəcək şəkil linki
 
 bot = Client("pinup_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
