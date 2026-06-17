@@ -7,7 +7,7 @@ API_ID = 10079905
 API_HASH = "e4a5fa251e2e055f26e5c2add8401530"  
 BOT_TOKEN = "8805123493:AAHETZ2RphaMdPrKwwWKPnAK8S2YZx9ke1Q" 
 ADMIN_ID = 8300963721      
-IMAGE_URL = "IMG_20260617_175753_868.jpg"  # Yenilənmiş şəkil adınız
+IMAGE_URL = "IMG_20260617_175753_868.jpg"  
 
 bot = Client("pinup_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
@@ -68,13 +68,7 @@ async def start_command(client, message):
     bot_info = await client.get_me()
     bot_mention = bot_info.mention
     
-    # İstifadəçinin yazdığı /start komandasını silirik (çat təmiz qalsın)
-    try:
-        await message.delete()
-    except Exception:
-        pass
-        
-    # Botun əvvəlki göndərdiyi mesajı silirik
+    # İstifadəçinin mesajı silinmir, sadəcə botun əvvəlki mesajı təmizlənir
     await delete_old_message(client, user_id)
     
     if is_user_verified(user_id):
@@ -97,7 +91,7 @@ async def start_command(client, message):
         )
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("✅ Giriş et", callback_data="login")],
-            [InlineKeyboardButton("🌐 Sayt", url="https://example.com")] # Sayt linkini bura daxil edə bilərsiniz
+            [InlineKeyboardButton("🌐 Sayt", url="https://example.com")] 
         ])
         msg = await message.reply_photo(
             photo=IMAGE_URL,
@@ -134,22 +128,20 @@ async def callback_handler(client, callback_query):
         await callback_query.message.edit_caption(caption=text, reply_markup=keyboard)
 
     elif data == "manager":
-        # İstəyinizə uyğun olaraq köhnə mesaj silinir və YENİ mesaj atılır
-        await delete_old_message(client, user_id)
-        
+        # Menecerə basanda köhnə mesaj SİLİNMİR (Hər şeyi silməsin dediyiniz üçün)
+        # Sadəcə yeni mesaj ŞƏKİLSİZ (boş mesaj olaraq) altından göndərilir
         text = (
             "🎁 PIN-UP Premium Bot - vasitəsilə köməkçi menecer-ə qoşulursunuz \n\n"
             "👨🏻‍💻 Bir qədər gözləyin, menecer sizə geri dönüş edəcək."
         )
-        msg = await client.send_photo(
+        msg = await client.send_message(
             chat_id=user_id,
-            photo=IMAGE_URL,
-            caption=text,
+            text=text,
             reply_markup=main_menu_keyboard()
         )
         user_last_messages[user_id] = msg.id
         
-        # Adminə məktub göndərilməsi
+        # Adminə bildiriş
         username = f"@{callback_query.from_user.username}" if callback_query.from_user.username else "Yoxdur"
         user_mention = callback_query.from_user.mention
         
@@ -179,17 +171,13 @@ async def text_handler(client, message):
     username = f"@{message.from_user.username}" if message.from_user.username else "Yoxdur"
     user_mention = message.from_user.mention
 
-    # İstifadəçinin göndərdiyi mətni (ID və ya məbləğ) dərhal silirik
-    try:
-        await message.delete()
-    except Exception:
-        pass
+    # İstifadəçinin göndərdiyi mesajlar ARTIQ SİLİNMİR (Çatda qalır)
 
     if state == "waiting_auth_id":
         verify_user(user_id)
         user_states.pop(user_id, None)
         
-        # Köhnə bot mesajını təmizləyirik
+        # Addım tamamlandığı üçün botun əvvəlki mesajı silinir
         await delete_old_message(client, user_id)
             
         text = (
@@ -207,13 +195,12 @@ async def text_handler(client, message):
         amount = message.text
         user_states.pop(user_id, None)
         
-        # Köhnə bot mesajını silirik
+        # "Məbləğ yazın" deyən bot mesajı silinir
         await delete_old_message(client, user_id)
         
         msg = await message.reply_text("PIN-UP Premium Bot - tərəfindən depozit məbləğiniz təsdiqləndi ✅\n\n🚀 Bot tərəfindən Menecer-ə yönəldilirsiniz")
         user_last_messages[user_id] = msg.id
         
-        # Adminə bildiriş
         admin_text = (
             "🔔 Depozit məktubu:\n"
             f"👤: {username}\n"
@@ -226,13 +213,12 @@ async def text_handler(client, message):
         amount = message.text
         user_states.pop(user_id, None)
         
-        # Köhnə bot mesajını silirik
+        # "Məbləğ qeyd edin" deyən bot mesajı silinir
         await delete_old_message(client, user_id)
         
         msg = await message.reply_text("PIN-UP Premium Bot - tərəfindən çıxarış məbləğiniz təsdiqləndi ✅\n\n🚀 Bot tərəfindən Menecer-ə yönəldilirsiniz")
         user_last_messages[user_id] = msg.id
         
-        # Adminə bildiriş
         admin_text = (
             "🔔 Çıxarış məktubu:\n"
             f"👤: {username}\n"
@@ -245,4 +231,4 @@ if __name__ == "__main__":
     init_db()  
     print("Bot başladıldı...")
     bot.run()
-        
+    
