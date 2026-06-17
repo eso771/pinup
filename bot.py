@@ -136,8 +136,7 @@ async def callback_handler(client, callback_query):
         )
         msg = await client.send_message(
             chat_id=user_id,
-            text=text,
-            reply_markup=main_menu_keyboard()
+            text=text
         )
         user_last_messages[user_id] = msg.id
         
