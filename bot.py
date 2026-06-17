@@ -3,11 +3,11 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # --- AYARLAR ---
-API_ID = 1234567          # Öz API ID-nizi yazın
-API_HASH = "your_api_hash_here"  # Öz API Hash-inizi yazın
-BOT_TOKEN = "your_bot_token_here" # Öz Bot Tokeninizi yazın
-ADMIN_ID = 123456789      # Bot sahibinin (Sizin) Telegram ID-niz
-IMAGE_URL = "https://example.com/your_image.jpg"  # Start mesajlarında görünəcək şəkil linki
+API_ID = 10079905          # Öz API ID-nizi yazın
+API_HASH = "e4a5fa251e2e055f26e5c2add8401530"  # Öz API Hash-inizi yazın
+BOT_TOKEN = "8805123493:AAHETZ2RphaMdPrKwwWKPnAK8S2YZx9ke1Q" # Öz Bot Tokeninizi yazın
+ADMIN_ID = 8300963721      # Bot sahibinin (Sizin) Telegram ID-niz
+IMAGE_URL = "https://imgur.com/a/y6GeePF"  # Start mesajlarında görünəcək şəkil linki
 
 bot = Client("pinup_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
