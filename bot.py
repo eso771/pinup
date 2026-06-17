@@ -51,6 +51,11 @@ def main_menu_keyboard():
         [InlineKeyboardButton("👨🏻‍💻 Menecerlə əlaqə", callback_data="manager")]
     ])
 
+def go_to_menu_keyboard():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("✅ Menyu", callback_data="go_to_main_menu")]
+    ])
+
 # Köhnə bot mesajını silən köməkçi funksiya
 async def delete_old_message(client, user_id):
     old_msg_id = user_last_messages.get(user_id)
@@ -68,7 +73,6 @@ async def start_command(client, message):
     bot_info = await client.get_me()
     bot_mention = bot_info.mention
     
-    # İstifadəçinin mesajı silinmir, sadəcə botun əvvəlki mesajı təmizlənir
     await delete_old_message(client, user_id)
     
     if is_user_verified(user_id):
@@ -128,15 +132,15 @@ async def callback_handler(client, callback_query):
         await callback_query.message.edit_caption(caption=text, reply_markup=keyboard)
 
     elif data == "manager":
-        # Menecerə basanda köhnə mesaj SİLİNMİR (Hər şeyi silməsin dediyiniz üçün)
-        # Sadəcə yeni mesaj ŞƏKİLSİZ (boş mesaj olaraq) altından göndərilir
+        # Menecerə basanda yeni mesaj ŞƏKİLSİZ və altında ✅ Menyu buttonu ilə gəlir
         text = (
             "🎁 PIN-UP Premium Bot - vasitəsilə köməkçi menecer-ə qoşulursunuz \n\n"
             "👨🏻‍💻 Bir qədər gözləyin, menecer sizə geri dönüş edəcək."
         )
         msg = await client.send_message(
             chat_id=user_id,
-            text=text
+            text=text,
+            reply_markup=go_to_menu_keyboard()
         )
         user_last_messages[user_id] = msg.id
         
@@ -162,6 +166,20 @@ async def callback_handler(client, callback_query):
         )
         await callback_query.message.edit_caption(caption=text, reply_markup=main_menu_keyboard())
 
+    elif data == "go_to_main_menu":
+        # ✅ Menyu düyməsinə basanda silmək zad olmadan birbaşa yeni menyu mesajı göndərir
+        text = (
+            "PIN-UP Premium Bot -a xoş gəldin 👋🏻\n"
+            "Aşağıdakı buttonlardan istifadə edərək bizimlə əlaqəyə keçə bilərsən ✋🏻"
+        )
+        msg = await client.send_photo(
+            chat_id=user_id,
+            photo=IMAGE_URL,
+            caption=text,
+            reply_markup=main_menu_keyboard()
+        )
+        user_last_messages[user_id] = msg.id
+
 # --- TEXT MESSAGES HANDLER (Mətn daxil edilməsi) ---
 @bot.on_message(filters.text & filters.private)
 async def text_handler(client, message):
@@ -170,13 +188,10 @@ async def text_handler(client, message):
     username = f"@{message.from_user.username}" if message.from_user.username else "Yoxdur"
     user_mention = message.from_user.mention
 
-    # İstifadəçinin göndərdiyi mesajlar ARTIQ SİLİNMİR (Çatda qalır)
-
     if state == "waiting_auth_id":
         verify_user(user_id)
         user_states.pop(user_id, None)
         
-        # Addım tamamlandığı üçün botun əvvəlki mesajı silinir
         await delete_old_message(client, user_id)
             
         text = (
@@ -194,10 +209,14 @@ async def text_handler(client, message):
         amount = message.text
         user_states.pop(user_id, None)
         
-        # "Məbləğ yazın" deyən bot mesajı silinir
+        # "Məbləğ yazın" deyən köhnə bot mesajını silirik
         await delete_old_message(client, user_id)
         
-        msg = await message.reply_text("PIN-UP Premium Bot - tərəfindən depozit məbləğiniz təsdiqləndi ✅\n\n🚀 Bot tərəfindən Menecer-ə yönəldilirsiniz")
+        # Yeni depozit mesajı altında ✅ Menyu düyməsi ilə göndərilir
+        msg = await message.reply_text(
+            text="PIN-UP Premium Bot - tərəfindən depozit məbləğiniz təsdiqləndi ✅\n\n🚀 Bot tərəfindən Menecer-ə yönəldilirsiniz",
+            reply_markup=go_to_menu_keyboard()
+        )
         user_last_messages[user_id] = msg.id
         
         admin_text = (
@@ -212,10 +231,14 @@ async def text_handler(client, message):
         amount = message.text
         user_states.pop(user_id, None)
         
-        # "Məbləğ qeyd edin" deyən bot mesajı silinir
+        # "Məbləğ qeyd edin" deyən köhnə bot mesajını silirik
         await delete_old_message(client, user_id)
         
-        msg = await message.reply_text("PIN-UP Premium Bot - tərəfindən çıxarış məbləğiniz təsdiqləndi ✅\n\n🚀 Bot tərəfindən Menecer-ə yönəldilirsiniz")
+        # Yeni çıxarış mesajı altında ✅ Menyu düyməsi ilə göndərilir
+        msg = await message.reply_text(
+            text="PIN-UP Premium Bot - tərəfindən çıxarış məbləğiniz təsdiqləndi ✅\n\n🚀 Bot tərəfindən Menecer-ə yönəldilirsiniz",
+            reply_markup=go_to_menu_keyboard()
+        )
         user_last_messages[user_id] = msg.id
         
         admin_text = (
