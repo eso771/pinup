@@ -3,11 +3,11 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # --- AYARLAR ---
-API_ID = 10079905          # Öz API ID-nizi yazın
-API_HASH = "e4a5fa251e2e055f26e5c2add8401530"  # Öz API Hash-inizi yazın
-BOT_TOKEN = "8805123493:AAHETZ2RphaMdPrKwwWKPnAK8S2YZx9ke1Q" # Öz Bot Tokeninizi yazın
-ADMIN_ID = 8300963721      # Bot sahibinin (Sizin) Telegram ID-niz
-IMAGE_URL = "IMG_20260617_175753_868.jpg"  # Start mesajlarında görünəcək şəkil linki
+API_ID = 10079905          
+API_HASH = "e4a5fa251e2e055f26e5c2add8401530"  
+BOT_TOKEN = "8805123493:AAHETZ2RphaMdPrKwwWKPnAK8S2YZx9ke1Q" 
+ADMIN_ID = 8300963721      
+IMAGE_URL = "IMG_20260617_175753_868.jpg"  # Yenilənmiş şəkil adınız
 
 bot = Client("pinup_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
@@ -39,9 +39,9 @@ def verify_user(user_id):
     conn.commit()
     conn.close()
 
-# İstifadəçi vəziyyətlərini yadda saxlamaq üçün müvəqqəti lüğət (dict)
-# Məsələn: {user_id: "waiting_deposit"} və ya {user_id: "waiting_withdraw"}
+# İstifadəçi vəziyyətləri və son bot mesaj ID-lərini saxlamaq üçün lüğətlər
 user_states = {}
+user_last_messages = {}
 
 # --- BUTTONLAR ---
 def main_menu_keyboard():
@@ -51,6 +51,16 @@ def main_menu_keyboard():
         [InlineKeyboardButton("👨🏻‍💻 Menecerlə əlaqə", callback_data="manager")]
     ])
 
+# Köhnə bot mesajını silən köməkçi funksiya
+async def delete_old_message(client, user_id):
+    old_msg_id = user_last_messages.get(user_id)
+    if old_msg_id:
+        try:
+            await client.delete_messages(chat_id=user_id, message_ids=old_msg_id)
+        except Exception:
+            pass
+        user_last_messages.pop(user_id, None)
+
 # --- COMMANDS ---
 @bot.on_message(filters.command("start") & filters.private)
 async def start_command(client, message):
@@ -58,19 +68,27 @@ async def start_command(client, message):
     bot_info = await client.get_me()
     bot_mention = bot_info.mention
     
-    # Əgər istifadəçi artıq təsdiqlənibsə
+    # İstifadəçinin yazdığı /start komandasını silirik (çat təmiz qalsın)
+    try:
+        await message.delete()
+    except Exception:
+        pass
+        
+    # Botun əvvəlki göndərdiyi mesajı silirik
+    await delete_old_message(client, user_id)
+    
     if is_user_verified(user_id):
         text = (
             "PIN-UP Premium Bot -a xoş gəldin 👋🏻\n"
             "Aşağıdakı buttonlardan istifadə edərək bizimlə əlaqəyə keçə bilərsən ✋🏻"
         )
-        await message.reply_photo(
+        msg = await message.reply_photo(
             photo=IMAGE_URL,
             caption=text,
             reply_markup=main_menu_keyboard()
         )
+        user_last_messages[user_id] = msg.id
     else:
-        # İlk dəfə gələn istifadəçi
         text = (
             f"Salam 👋🏻\n"
             f"{bot_mention} -a xoş gəldin 🤩\n"
@@ -79,13 +97,14 @@ async def start_command(client, message):
         )
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("✅ Giriş et", callback_data="login")],
-            [InlineKeyboardButton("🌐 Sayt", url="https://example.com")] # Sayt linkini bura yazın
+            [InlineKeyboardButton("🌐 Sayt", url="https://example.com")] # Sayt linkini bura daxil edə bilərsiniz
         ])
-        await message.reply_photo(
+        msg = await message.reply_photo(
             photo=IMAGE_URL,
             caption=text,
             reply_markup=keyboard
         )
+        user_last_messages[user_id] = msg.id
 
 # --- CALLBACK HANDLERS (Button kliklənmələri) ---
 @bot.on_callback_query()
@@ -99,7 +118,7 @@ async def callback_handler(client, callback_query):
             "🚀 Sayta keç və ID nömrən ilə qeydiyyat nömrəsini kopyalayıb bota göndər"
         )
         user_states[user_id] = "waiting_auth_id"
-        # Şəkilli mesajın mətnini editləyirik
+        user_last_messages[user_id] = callback_query.message.id
         await callback_query.message.edit_caption(caption=text)
         
     elif data == "deposit":
@@ -115,13 +134,22 @@ async def callback_handler(client, callback_query):
         await callback_query.message.edit_caption(caption=text, reply_markup=keyboard)
 
     elif data == "manager":
+        # İstəyinizə uyğun olaraq köhnə mesaj silinir və YENİ mesaj atılır
+        await delete_old_message(client, user_id)
+        
         text = (
             "🎁 PIN-UP Premium Bot - vasitəsilə köməkçi menecer-ə qoşulursunuz \n\n"
             "👨🏻‍💻 Bir qədər gözləyin, menecer sizə geri dönüş edəcək."
         )
-        await callback_query.message.edit_caption(caption=text, reply_markup=main_menu_keyboard())
+        msg = await client.send_photo(
+            chat_id=user_id,
+            photo=IMAGE_URL,
+            caption=text,
+            reply_markup=main_menu_keyboard()
+        )
+        user_last_messages[user_id] = msg.id
         
-        # Adminə bildiriş göndərilməsi
+        # Adminə məktub göndərilməsi
         username = f"@{callback_query.from_user.username}" if callback_query.from_user.username else "Yoxdur"
         user_mention = callback_query.from_user.mention
         
@@ -136,7 +164,6 @@ async def callback_handler(client, callback_query):
             print(f"Adminə mesaj göndərilə bilmədi: {e}")
 
     elif data == "back_to_menu":
-        # Vəziyyəti sıfırlayırıq və menyuya qayıdırıq
         user_states.pop(user_id, None)
         text = (
             "PIN-UP Premium Bot - tərəfindən təsdiqlənmə uğurla başa çatdı 🤩\n\n"
@@ -152,30 +179,39 @@ async def text_handler(client, message):
     username = f"@{message.from_user.username}" if message.from_user.username else "Yoxdur"
     user_mention = message.from_user.mention
 
+    # İstifadəçinin göndərdiyi mətni (ID və ya məbləğ) dərhal silirik
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
     if state == "waiting_auth_id":
-        # İstifadəçi ID göndərdi -> Təsdiqləyirik
         verify_user(user_id)
-        user_states.pop(user_id, None) # Vəziyyəti təmizləyirik
+        user_states.pop(user_id, None)
         
-        # Botun köhnə (şəkilli) mesajını silmək funksiyası yoxdur, 
-        # amma məntiqə görə yeni şəkil göndərib köhnəni silə bilərik.
-        # Sadəlik üçün əvvəlki mesajı silmək əvəzinə, yeni təmiz mesaj göndəririk.
-        
+        # Köhnə bot mesajını təmizləyirik
+        await delete_old_message(client, user_id)
+            
         text = (
             "PIN-UP Premium Bot - tərəfindən təsdiqlənmə uğurla başa çatdı 🤩\n\n"
             "🚀 Əməliyyatlar üçün buttonlardan istifadə et"
         )
-        await message.reply_photo(
+        msg = await message.reply_photo(
             photo=IMAGE_URL,
             caption=text,
             reply_markup=main_menu_keyboard()
         )
+        user_last_messages[user_id] = msg.id
 
     elif state == "waiting_deposit_amount":
         amount = message.text
         user_states.pop(user_id, None)
         
-        await message.reply_text("PIN-UP Premium Bot - tərəfindən depozit məbləğiniz təsdiqləndi ✅\n\n🚀 Bot tərəfindən Menecer-ə yönəldilirsiniz")
+        # Köhnə bot mesajını silirik
+        await delete_old_message(client, user_id)
+        
+        msg = await message.reply_text("PIN-UP Premium Bot - tərəfindən depozit məbləğiniz təsdiqləndi ✅\n\n🚀 Bot tərəfindən Menecer-ə yönəldilirsiniz")
+        user_last_messages[user_id] = msg.id
         
         # Adminə bildiriş
         admin_text = (
@@ -190,7 +226,11 @@ async def text_handler(client, message):
         amount = message.text
         user_states.pop(user_id, None)
         
-        await message.reply_text("PIN-UP Premium Bot - tərəfindən çıxarış məbləğiniz təsdiqləndi ✅\n\n🚀 Bot tərəfindən Menecer-ə yönəldilirsiniz")
+        # Köhnə bot mesajını silirik
+        await delete_old_message(client, user_id)
+        
+        msg = await message.reply_text("PIN-UP Premium Bot - tərəfindən çıxarış məbləğiniz təsdiqləndi ✅\n\n🚀 Bot tərəfindən Menecer-ə yönəldilirsiniz")
+        user_last_messages[user_id] = msg.id
         
         # Adminə bildiriş
         admin_text = (
@@ -202,7 +242,7 @@ async def text_handler(client, message):
         await client.send_message(chat_id=ADMIN_ID, text=admin_text)
 
 if __name__ == "__main__":
-    init_db()  # Bazanı yaradırıq
+    init_db()  
     print("Bot başladıldı...")
     bot.run()
-  
+        
